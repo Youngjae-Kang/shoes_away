@@ -123,7 +123,7 @@
                 durability -= (5 + Math.random() * 5) * shoeData.durLoss;
                 durText.innerText = Math.ceil(Math.max(0, durability));
                 if (durability <= 0) { 
-                    alert(shoeData.name + " 파손! 최종 기록 - 누적 거리: " + totalDistBase + "m / 최고 고도: " + maxOverallHeight + "m"); 
+                    alert(`💥 ${shoeData.name} 파손!\n\n🚩 누적 거리: ${totalDistBase}m\n🚀 최고 고도: ${maxOverallHeight}m`); 
                     location.reload(); 
                 }
             }
@@ -195,5 +195,6 @@
 </script>
 </body>
 </html>
+
 
 
