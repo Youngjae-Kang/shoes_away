@@ -10,7 +10,7 @@
         
         /* 선택 화면 */
         #selection-screen { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        .shoe-option { background: rgba(255,255,255,0.2); border: 2px solid white; border-radius: 15px; padding: 15px; margin: 10px; width: 80%; max-width: 300px; text-align: center; cursor: pointer; }
+        .shoe-option { background: rgba(255,255,255,0.2); border: 2px solid white; border-radius: 15px; padding: 15px; margin: 10px; width: 80%; max-width: 300px; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .shoe-option:active { background: rgba(255,255,255,0.4); }
         .shoe-name { font-size: 1.2em; font-weight: bold; margin-bottom: 5px; }
         .shoe-desc { font-size: 0.9em; opacity: 0.8; }
@@ -24,15 +24,15 @@
 
 <div id="selection-screen">
     <h1>신발을 고르세요!</h1>
-    <div class="shoe-option" onclick="selectShoe('sneakers')">
+    <div class="shoe-option" id="btn-sneakers">
         <div class="shoe-name">👟 운동화</div>
         <div class="shoe-desc">밸런스가 좋은 무난한 아이템</div>
     </div>
-    <div class="shoe-option" onclick="selectShoe('slipper')">
+    <div class="shoe-option" id="btn-slipper">
         <div class="shoe-name">🩴 삼선 슬리퍼</div>
         <div class="shoe-desc">가볍고 멀리 날아가지만 잘 망가짐</div>
     </div>
-    <div class="shoe-option" onclick="selectShoe('leather')">
+    <div class="shoe-option" id="btn-leather">
         <div class="shoe-name">👞 정장 구두</div>
         <div class="shoe-desc">무겁지만 아주 튼튼함</div>
     </div>
@@ -83,10 +83,10 @@
     let cameraX = 0;
     let targetCameraX = 0;
 
-    // 패럴랙스용 나무
     const trees = [];
     for(let i=0; i<100; i++) trees.push({ x: i * 350 + Math.random()*150, size: 40 + Math.random()*50 });
 
+    // 수정된 선택 로직 (터치/클릭 통합)
     function selectShoe(type) {
         if(type === 'sneakers') {
             shoeData = { name: "운동화", color: "#a52a2a", weight: 1.0, durLoss: 1.0 };
@@ -102,6 +102,23 @@
         document.getElementById('gauge-container').style.display = 'block';
         gameStarted = true;
     }
+
+    // 버튼 이벤트 리스너 등록
+    const shoeBtns = [
+        { id: 'btn-sneakers', type: 'sneakers' },
+        { id: 'btn-slipper', type: 'slipper' },
+        { id: 'btn-leather', type: 'leather' }
+    ];
+
+    shoeBtns.forEach(btn => {
+        const el = document.getElementById(btn.id);
+        const handleEvent = (e) => {
+            e.preventDefault(); // 터치 씹힘 방지
+            selectShoe(btn.type);
+        };
+        el.addEventListener('click', handleEvent);
+        el.addEventListener('touchstart', handleEvent);
+    });
 
     function update() {
         if (!gameStarted) return;
@@ -132,7 +149,6 @@
                 totalText.innerText = totalDist;
                 shoe.startX = shoe.x;
 
-                // 신발 데이터에 따른 내구도 감소
                 durability -= (Math.floor(Math.random() * 5) + 5) * shoeData.durLoss;
                 durText.innerText = Math.ceil(Math.max(0, durability));
                 
@@ -148,10 +164,8 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (!gameStarted) { requestAnimationFrame(draw); return; }
 
-        // 배경
         ctx.fillStyle = "#87CEEB"; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 나무 (패럴랙스)
         trees.forEach(t => {
             let tx = t.x - cameraX * 0.5;
             if(tx > -100 && tx < canvas.width + 100) {
@@ -160,24 +174,21 @@
             }
         });
 
-        // 땅
         ctx.save();
         ctx.translate(-cameraX, 0);
         ctx.fillStyle = "#4caf50"; ctx.fillRect(cameraX, groundY, canvas.width, canvas.height - groundY);
 
-        // 신발
         ctx.save();
         ctx.translate(shoe.x, shoe.y);
         ctx.rotate(shoe.rotation);
         ctx.fillStyle = shoeData.color;
         ctx.fillRect(-14, -8, 28, 12);
-        if(shoeData.name === "슬리퍼") { // 슬리퍼는 삼선 표시
+        if(shoeData.name === "슬리퍼") {
             ctx.fillStyle = "white";
             ctx.fillRect(-5, -8, 2, 12); ctx.fillRect(-1, -8, 2, 12); ctx.fillRect(3, -8, 2, 12);
         }
         ctx.restore();
 
-        // 조준선
         if (!isFlying && durability > 0) {
             ctx.save();
             ctx.translate(shoe.x, shoe.y);
@@ -198,7 +209,6 @@
             isCharging = false;
             isFlying = true;
             const rad = angle * Math.PI / 180;
-            // 무게가 가벼울수록(weight가 작을수록) 속도가 빨라짐
             const finalPower = ((power / 4) + 6) / shoeData.weight; 
             shoe.vx = Math.cos(rad) * finalPower;
             shoe.vy = Math.sin(rad) * finalPower;
@@ -209,8 +219,8 @@
 
     window.addEventListener('mousedown', startCharge);
     window.addEventListener('mouseup', endCharge);
-    window.addEventListener('touchstart', (e) => { e.preventDefault(); startCharge(); });
-    window.addEventListener('touchend', (e) => { e.preventDefault(); endCharge(); });
+    window.addEventListener('touchstart', (e) => { if(gameStarted) { e.preventDefault(); startCharge(); } });
+    window.addEventListener('touchend', (e) => { if(gameStarted) { e.preventDefault(); endCharge(); } });
 
     draw();
 </script>
