@@ -21,7 +21,7 @@
     <h1>신발을 고르세요!</h1>
     <div class="shoe-option" onclick="selectShoe('sneakers')"><strong>👟 운동화</strong><br>표준 밸런스</div>
     <div class="shoe-option" onclick="selectShoe('slipper')"><strong>🩴 슬리퍼</strong><br>멀리 가지만 약함</div>
-    <div class="shoe-option" onclick="selectShoe('leather')"><strong>👞 구두</strong><br>무겁지만 튼튼함</div>
+    <div class="shoe-option" onclick="selectShoe('leather')"><strong>👞 정장 구두</strong><br>무겁지만 튼튼함</div>
     <div class="shoe-option" onclick="selectShoe('boots')"><strong>👢 롱 부츠</strong><br>멋지지만 굽 꺾임 주의</div>
 </div>
 
@@ -72,7 +72,7 @@
     function selectShoe(type) {
         if(type === 'sneakers') shoeData = { name: "운동화", color: "#a52a2a", weight: 1.0, durLoss: 1.0 };
         else if(type === 'slipper') shoeData = { name: "슬리퍼", color: "#333", weight: 0.7, durLoss: 2.5 };
-        else if(type === 'leather') shoeData = { name: "구두", color: "#222", weight: 1.4, durLoss: 0.4 };
+        else if(type === 'leather') shoeData = { name: "정장구두", color: "#222", weight: 1.4, durLoss: 0.4 };
         else if(type === 'boots') shoeData = { name: "롱부츠", color: "#111", weight: 1.2, durLoss: 0.6 };
 
         document.getElementById('selection-screen').style.display = 'none';
@@ -164,7 +164,7 @@
         ctx.save(); ctx.translate(shoe.x, shoe.y); ctx.rotate(shoe.rotation);
         ctx.fillStyle = shoeData.color;
         if(shoeData.name === "롱부츠") { ctx.fillRect(-14, 0, 28, 12); ctx.fillRect(4, -35, 12, 50); }
-        else if(shoeData.name === "구두") { ctx.fillRect(-14, -6, 28, 10); ctx.fillStyle="#000"; ctx.fillRect(8, 4, 6, 8); }
+        else if(shoeData.name === "정장구두") { ctx.fillRect(-14, -6, 28, 10); ctx.fillStyle="#000"; }
         else if(shoeData.name === "슬리퍼") { ctx.fillRect(-14, -8, 28, 12); ctx.fillStyle="white"; ctx.fillRect(-8,-8,2,12); ctx.fillRect(-4,-8,2,12); ctx.fillRect(0,-8,2,12); }
         else { ctx.fillRect(-14, -8, 28, 12); }
         ctx.restore();
@@ -195,4 +195,5 @@
 </script>
 </body>
 </html>
+
 
