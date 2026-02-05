@@ -107,13 +107,20 @@
 
             if (shoe.y + 12 >= groundY) {
                 shoe.y = groundY - 12; isFlying = false;
-                totalDistBase += Math.max(0, Math.floor((shoe.x - shoe.startX) / 10)); shoe.startX = shoe.x;
+                totalDistBase = currentDist; 
+                shoe.startX = shoe.x;
                 durability -= (5 + Math.random()*5) * shoeData.durLoss;
                 durText.innerText = Math.ceil(Math.max(0, durability));
-                if (durability <= 0) { alert(shoeData.name + " 파손! 기록: " + totalDistBase + "m"); location.reload(); }
+                if (durability <= 0) { 
+                    // 결과창에 거리와 고도 모두 포함
+                    setTimeout(() => {
+                        alert(`[${shoeData.name} 파손!]\n최종 거리: ${totalDistBase}m\n최고 고도: ${maxOverallHeight}m`); 
+                        location.reload(); 
+                    }, 100);
+                }
             }
         }
-    }
+    }}
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -181,3 +188,4 @@
 </script>
 </body>
 </html>
+
