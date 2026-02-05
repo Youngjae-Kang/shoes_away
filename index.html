@@ -8,7 +8,7 @@
         body { margin: 0; padding: 0; background: #000; font-family: sans-serif; overflow: hidden; touch-action: none; }
         #ui { position: absolute; top: 15px; left: 15px; z-index: 10; color: #fff; text-shadow: 2px 2px 4px #000; pointer-events: none; display: none; }
         #selection-screen { position: absolute; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
-        .shoe-option { background: #333; border: 2px solid #fff; border-radius: 15px; padding: 15px; margin: 10px; width: 250px; text-align: center; cursor: pointer; }
+        .shoe-option { background: #333; border: 2px solid #fff; border-radius: 15px; padding: 15px; margin: 10px; width: 250px; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         #gauge-container { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 220px; height: 25px; background: #222; border: 3px solid #fff; border-radius: 15px; display: none; overflow: hidden; }
         #gauge { width: 0%; height: 100%; background: linear-gradient(to right, #4caf50, #ffeb3b, #f44336); }
         #achievement-popup { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); background: gold; color: #000; padding: 10px 20px; border-radius: 20px; font-weight: bold; display: none; z-index: 1000; }
@@ -19,10 +19,10 @@
 
 <div id="selection-screen">
     <h1>신발을 고르세요!</h1>
-    <div class="shoe-option" onclick="selectShoe('sneakers')"><strong>👟 운동화</strong><br>표준 밸런스</div>
-    <div class="shoe-option" onclick="selectShoe('slipper')"><strong>🩴 슬리퍼</strong><br>멀리 가지만 약함</div>
-    <div class="shoe-option" onclick="selectShoe('leather')"><strong>👞 구두</strong><br>무겁지만 튼튼함</div>
-    <div class="shoe-option" onclick="selectShoe('boots')"><strong>👢 롱 부츠</strong><br>멋지지만 굽 꺾임 주의</div>
+    <div class="shoe-option" onclick="selectShoe('sneakers', event)"><strong>👟 운동화</strong><br>표준 밸런스</div>
+    <div class="shoe-option" onclick="selectShoe('slipper', event)"><strong>🩴 슬리퍼</strong><br>멀리 가지만 약함</div>
+    <div class="shoe-option" onclick="selectShoe('leather', event)"><strong>👞 구두</strong><br>무겁지만 튼튼함</div>
+    <div class="shoe-option" onclick="selectShoe('boots', event)"><strong>👢 롱 부츠</strong><br>ㅓ모양 긴 목 부츠</div>
 </div>
 
 <div id="ui">
@@ -42,6 +42,7 @@
     const gauge = document.getElementById('gauge');
     const totalText = document.getElementById('total-val');
     const heightText = document.getElementById('height-val');
+    const maxHeightText = document.getElementById('max-height-val');
     const durText = document.getElementById('dur-val');
     const achievementPopup = document.getElementById('achievement-popup');
 
@@ -69,7 +70,8 @@
         clouds.push({ x: Math.random()*5000, y: y, w: 120+Math.random()*100, h: 60+Math.random()*40, o: 0.3+Math.random()*0.4 });
     }
 
-    function selectShoe(type) {
+    function selectShoe(type, e) {
+        if(e) e.stopPropagation(); // 버튼 클릭 시 캔버스 터치 방지
         if(type === 'sneakers') shoeData = { name: "운동화", color: "#a52a2a", weight: 1.0, durLoss: 1.0 };
         else if(type === 'slipper') shoeData = { name: "슬리퍼", color: "#333", weight: 0.7, durLoss: 2.5 };
         else if(type === 'leather') shoeData = { name: "구두", color: "#222", weight: 1.4, durLoss: 0.4 };
@@ -98,21 +100,30 @@
             shoe.vx *= 0.996; shoe.vy += gravity; shoe.x += shoe.vx; shoe.y += shoe.vy; shoe.rotation += shoe.vx * 0.1;
             let curH = Math.max(0, Math.floor((groundY - (shoe.y + 10)) / 5));
             heightText.innerText = curH;
-            if(curH > maxOverallHeight) { maxOverallHeight = curH; document.getElementById('max-height-val').innerText = curH; }
-            totalText.innerText = totalDistBase + Math.max(0, Math.floor((shoe.x - shoe.startX) / 10));
+            if(curH > maxOverallHeight) { 
+                maxOverallHeight = curH; 
+                maxHeightText.innerText = curH; 
+            }
+            let currentDist = Math.max(0, Math.floor((shoe.x - shoe.startX) / 10));
+            totalText.innerText = totalDistBase + currentDist;
 
             achievements.forEach(a => {
-                if (!a.r && curH >= a.h) { a.r = true; achievementPopup.innerText = "⭐ " + a.t; achievementPopup.style.display = 'block'; setTimeout(()=>achievementPopup.style.display='none', 2000); }
+                if (!a.r && curH >= a.h) { 
+                    a.r = true; 
+                    achievementPopup.innerText = "⭐ " + a.t; 
+                    achievementPopup.style.display = 'block'; 
+                    setTimeout(()=>achievementPopup.style.display='none', 2000); 
+                }
             });
 
             if (shoe.y + 12 >= groundY) {
-                shoe.y = groundY - 12; isFlying = false;
-                totalDistBase = currentDist; 
+                shoe.y = groundY - 12; 
+                isFlying = false;
+                totalDistBase += currentDist; 
                 shoe.startX = shoe.x;
                 durability -= (5 + Math.random()*5) * shoeData.durLoss;
                 durText.innerText = Math.ceil(Math.max(0, durability));
                 if (durability <= 0) { 
-                    // 결과창에 거리와 고도 모두 포함
                     setTimeout(() => {
                         alert(`[${shoeData.name} 파손!]\n최종 거리: ${totalDistBase}m\n최고 고도: ${maxOverallHeight}m`); 
                         location.reload(); 
@@ -120,7 +131,7 @@
                 }
             }
         }
-    }}
+    }
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -156,8 +167,8 @@
         ctx.save(); ctx.translate(shoe.x, shoe.y); ctx.rotate(shoe.rotation);
         ctx.fillStyle = shoeData.color;
         if(shoeData.name === "롱부츠") { ctx.fillRect(-14, 0, 28, 12); ctx.fillRect(4, -35, 12, 50); }
-        else if(shoeData.name === "구두") { ctx.fillRect(-14, -6, 28, 10); ctx.fillStyle="#000"; }
-        else if(shoeData.name === "슬리퍼") { ctx.fillRect(-14, -8, 28, 12); ctx.fillStyle="white"; ctx.fillRect(-8,-8,2,12); ctx.fillRect(-4,-8,2,12); ctx.fillRect(0,-8,2,12); }
+        else if(shoeData.name === "구두") { ctx.fillRect(-14, -6, 28, 10); ctx.fillStyle="#000"; ctx.fillRect(8, 4, 6, 8); }
+        else if(shoeData.name === "슬리퍼") { ctx.fillRect(-14, -8, 28, 12); ctx.fillStyle="white"; ctx.fillRect(-8,-8,2,12); ctx.fillRect(-2,-8,2,12); ctx.fillRect(4,-8,2,12); }
         else { ctx.fillRect(-14, -8, 28, 12); }
         ctx.restore();
 
@@ -170,7 +181,6 @@
         update(); requestAnimationFrame(draw);
     }
 
-    // 마우스와 터치 이벤트 각각 확실하게 등록
     function onDown(e) { if(gameStarted && !isFlying) isCharging = true; }
     function onUp(e) {
         if(isCharging) {
@@ -181,11 +191,10 @@
         }
     }
     window.addEventListener('mousedown', onDown); window.addEventListener('mouseup', onUp);
-    window.addEventListener('touchstart', (e) => { if(e.target.tagName !== 'DIV') e.preventDefault(); onDown(); }, {passive:false});
+    window.addEventListener('touchstart', (e) => { if(e.target.tagName !== 'DIV') { onDown(); } }, {passive:false});
     window.addEventListener('touchend', onUp);
 
     draw();
 </script>
 </body>
 </html>
-
