@@ -8,28 +8,27 @@
         body { margin: 0; padding: 0; background: #000; font-family: 'Apple SD Gothic Neo', sans-serif; overflow: hidden; touch-action: none; }
         #ui { position: absolute; top: 15px; left: 15px; z-index: 10; color: #fff; text-shadow: 2px 2px 4px #000; pointer-events: none; display: none; }
         .stat-box { margin-bottom: 5px; }
-        #selection-screen { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        #selection-screen { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
         .shoe-option { background: rgba(255,255,255,0.2); border: 2px solid white; border-radius: 15px; padding: 15px; margin: 10px; width: 80%; max-width: 300px; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         #gauge-container { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 220px; height: 25px; background: rgba(0,0,0,0.6); border: 3px solid #fff; border-radius: 15px; overflow: hidden; display: none; }
         #gauge { width: 0%; height: 100%; background: linear-gradient(to right, #4caf50, #ffeb3b, #f44336); }
-        #achievement-popup { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(255, 215, 0, 0.9); color: #000; padding: 10px 20px; border-radius: 20px; font-weight: bold; display: none; z-index: 1000; animation: fadeUp 2s forwards; }
-        @keyframes fadeUp { 0% { opacity: 0; transform: translate(-50%, 20px); } 20% { opacity: 1; transform: translate(-50%, 0); } 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, -20px); } }
+        #achievement-popup { position: absolute; top: 20%; left: 50%; transform: translateX(-50%); background: rgba(255, 215, 0, 0.9); color: #000; padding: 10px 20px; border-radius: 20px; font-weight: bold; display: none; z-index: 1000; }
         canvas { display: block; }
     </style>
 </head>
 <body>
 
 <div id="selection-screen">
-    <h1>신발을 고르세요!</h1>
-    <div class="shoe-option" id="btn-sneakers"><strong>👟 운동화</strong><br><small>표준 밸런스</small></div>
-    <div class="shoe-option" id="btn-slipper"><strong>🩴 삼선 슬리퍼</strong><br><small>멀리 가지만 약함</small></div>
-    <div class="shoe-option" id="btn-leather"><strong>👞 정장 구두</strong><br><small>무겁지만 튼튼함</small></div>
-    <div class="shoe-option" id="btn-boots"><strong>👢 롱 부츠</strong><br><small>멋지지만 굽 꺾임 주의</small></div>
+    <h1 style="margin-bottom: 20px;">신발을 고르세요!</h1>
+    <div class="shoe-option" onclick="selectShoe('sneakers')"><strong>👟 운동화</strong><br><small>표준 밸런스</small></div>
+    <div class="shoe-option" onclick="selectShoe('slipper')"><strong>🩴 슬리퍼</strong><br><small>멀리 가지만 약함</small></div>
+    <div class="shoe-option" onclick="selectShoe('leather')"><strong>👞 구두</strong><br><small>무겁지만 튼튼함</small></div>
+    <div class="shoe-option" onclick="selectShoe('boots')"><strong>👢 롱 부츠</strong><br><small>멋지지만 굽 꺾임 주의</small></div>
 </div>
 
 <div id="ui">
     <div class="stat-box" style="font-size: 1.4em; font-weight: bold;">🚩 거리: <span id="total-val">0</span>m</div>
-    <div class="stat-box" style="font-size: 1.2em; color: #00d2ff;">🚀 현재 고도: <span id="height-val">0</span>m</div>
+    <div class="stat-box" style="font-size: 1.2em; color: #00d2ff;">🚀 고도: <span id="height-val">0</span>m</div>
     <div class="stat-box" style="font-size: 0.9em; color: #ffeb3b;">🏆 최고 고도: <span id="max-height-val">0</span>m</div>
     <div class="stat-box" style="margin-top:10px;">🛠️ 내구도: <span id="dur-val">100</span>%</div>
 </div>
@@ -52,84 +51,78 @@
     canvas.height = window.innerHeight;
 
     let gameStarted = false;
-    let totalDistBase = 0;
     let durability = 100;
+    let totalDistBase = 0;
     let isCharging = false;
     let isFlying = false;
-    let currentHeight = 0;
     let maxOverallHeight = 0;
 
     let power = 0, powerDir = 1, angle = -45, angleDir = 1;
     const gravity = 0.22;
     const groundY = canvas.height * 0.85;
 
-    let shoeData = { name: "", color: "", weight: 1.0, durLoss: 1.0 };
-    let shoe = { x: 100, y: groundY - 20, vx: 0, vy: 0, rotation: 0, startX: 100 };
+    let shoeData = { name: "", color: "#fff", weight: 1.0, durLoss: 1.0 };
+    // 시작 위치 수정: x를 50으로 변경
+    let shoe = { x: 50, y: groundY - 20, vx: 0, vy: 0, rotation: 0, startX: 50 };
     let cameraX = 0, cameraY = 0;
-    let targetCameraX = 0, targetCameraY = 0;
 
     const achievements = [
         { height: 50, title: "☁️ 구름 돌파! (50m)", reached: false },
         { height: 150, title: "✈️ 성층권 진입! (150m)", reached: false },
         { height: 300, title: "🌌 우주의 경계! (300m)", reached: false },
-        { height: 500, title: "👨‍🚀 진정한 우주 비행사 (500m)", reached: false }
+        { height: 500, title: "👨‍🚀 우주 비행사 (500m)", reached: false }
     ];
 
     const trees = [];
-    for(let i=0; i<1000; i++) {
-        trees.push({ 
-            x: i * 400 + Math.random()*200, 
-            size: 50 + Math.random()*50,
-            autumnColor: `rgb(${200 + Math.random()*55}, ${50 + Math.random()*100}, 20)`
-        });
-    }
-    
+    for(let i=0; i<500; i++) trees.push({ x: i * 400 + Math.random()*200, size: 50 + Math.random()*50 });
+
     const clouds = [];
-    function generateClouds(startY, endY) {
-        // 낮은 고도(startY가 0에 가까울 때)일수록 간격을 더 촘촘하게 해서 많이 생성
-        let step = (startY > -3000) ? 180 : 400; 
-        
-        for(let y = startY; y > endY; y -= step) {
-            clouds.push({ 
-                x: Math.random() * 20000 - 5000, 
-                y: y, 
-                w: 110 + Math.random() * 130, 
-                h: 55 + Math.random() * 45, 
-                opacity: 0.35 + Math.random() * 0.4 
+    function generateInitialClouds() {
+        for(let i=0; i<60; i++) {
+            clouds.push({
+                x: Math.random() * 8000,
+                y: -(Math.random() * 12000 + 400),
+                w: 120 + Math.random() * 150,
+                h: 60 + Math.random() * 50,
+                opacity: 0.3 + Math.random() * 0.4
             });
         }
     }
-    // 초기 생성: 지상 근처는 아주 촘촘하게, 위로 갈수록 일반적이게
-    generateClouds(200, -3000); 
-    generateClouds(-3001, -15000);
+    generateInitialClouds();
 
     const snow = [];
-    for(let i=0; i<100; i++) snow.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: 1 + Math.random()*3 });
+    for(let i=0; i<100; i++) snow.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: 1 + Math.random()*2 });
 
     function triggerAchievement(text) {
         achievementPopup.innerText = text;
-        achievementPopup.style.display = 'none';
-        void achievementPopup.offsetWidth; 
         achievementPopup.style.display = 'block';
+        setTimeout(() => { achievementPopup.style.display = 'none'; }, 2500);
     }
 
     function selectShoe(type) {
         if(type === 'sneakers') shoeData = { name: "운동화", color: "#a52a2a", weight: 1.0, durLoss: 1.0 };
         else if(type === 'slipper') shoeData = { name: "슬리퍼", color: "#333", weight: 0.7, durLoss: 2.5 };
         else if(type === 'leather') shoeData = { name: "구두", color: "#222", weight: 1.4, durLoss: 0.4 };
-        else if(type === 'boots') shoeData = { name: "롱부츠", color: "#111", weight: 1.25, durLoss: 0.6 };
-        
+        else if(type === 'boots') shoeData = { name: "롱부츠", color: "#111", weight: 1.2, durLoss: 0.6 };
+
         document.getElementById('selection-screen').style.display = 'none';
         document.getElementById('ui').style.display = 'block';
         document.getElementById('gauge-container').style.display = 'block';
+        
+        // 카메라 초기 위치를 신발에 맞춰 설정
+        cameraX = shoe.x - canvas.width * 0.2;
         gameStarted = true;
     }
 
-    const shoeBtns = [{ id: 'btn-sneakers', type: 'sneakers' }, { id: 'btn-slipper', type: 'slipper' }, { id: 'btn-leather', type: 'leather' }, { id: 'btn-boots', type: 'boots' }];
-    shoeBtns.forEach(btn => document.getElementById(btn.id).addEventListener('click', () => selectShoe(btn.type)));
-
     function update() {
         if (!gameStarted) return;
+
+        let targetCamX = shoe.x - canvas.width * 0.2;
+        let targetCamY = (shoe.y < canvas.height * 0.4) ? shoe.y - canvas.height * 0.4 : 0;
+        
+        cameraX += (targetCamX - cameraX) * 0.1;
+        cameraY += (targetCamY - cameraY) * 0.1;
+
         if (!isFlying && durability > 0) {
             angle += 1.8 * angleDir;
             if (angle > -15 || angle < -75) angleDir *= -1;
@@ -138,8 +131,6 @@
                 if (power > 100 || power < 0) powerDir *= -1;
                 gauge.style.width = power + "%";
             }
-            targetCameraY = 0; currentHeight = 0;
-            heightText.innerText = "0";
         }
 
         if (isFlying) {
@@ -149,137 +140,100 @@
             shoe.y += shoe.vy;
             shoe.rotation += shoe.vx * 0.1;
 
-            let currentShotDist = Math.max(0, Math.floor((shoe.x - shoe.startX) / 10));
-            totalText.innerText = totalDistBase + currentShotDist;
-            
-            currentHeight = Math.max(0, Math.floor((groundY - (shoe.y + 12)) / 5));
-            heightText.innerText = currentHeight;
-            if (currentHeight > maxOverallHeight) { 
-                maxOverallHeight = currentHeight; 
-                maxHeightText.innerText = maxOverallHeight; 
-            }
+            let curH = Math.max(0, Math.floor((groundY - (shoe.y + 10)) / 5));
+            heightText.innerText = curH;
+            if(curH > maxOverallHeight) { maxOverallHeight = curH; maxHeightText.innerText = maxOverallHeight; }
+            totalText.innerText = totalDistBase + Math.max(0, Math.floor((shoe.x - shoe.startX) / 10));
 
             achievements.forEach(a => {
-                if (!a.reached && currentHeight >= a.height) {
-                    a.reached = true;
-                    triggerAchievement(`⭐ 도전과제: ${a.title}`);
-                }
+                if (!a.reached && curH >= a.height) { a.reached = true; triggerAchievement(`⭐ ${a.title}`); }
             });
-
-            targetCameraX = Math.max(0, shoe.x - canvas.width * 0.3);
-            targetCameraY = (shoe.y < canvas.height * 0.4) ? shoe.y - canvas.height * 0.4 : 0;
-
-            if (shoe.y < clouds[clouds.length-1].y + 3000) {
-                generateClouds(clouds[clouds.length-1].y, clouds[clouds.length-1].y - 8000);
-            }
 
             if (shoe.y + 12 >= groundY) {
                 shoe.y = groundY - 12;
                 isFlying = false;
-                totalDistBase += currentShotDist;
+                totalDistBase += Math.max(0, Math.floor((shoe.x - shoe.startX) / 10));
                 shoe.startX = shoe.x;
-
-                let baseLoss = (Math.floor(Math.random() * 5) + 5) * shoeData.durLoss;
-                if(shoeData.name === "롱부츠" && Math.random() < 0.3) {
-                    baseLoss *= 2.5;
-                    triggerAchievement("⚠️ 굽이 꺾였다! 내구도 대폭 감소");
-                }
-                durability -= baseLoss;
+                let loss = (5 + Math.random() * 5) * shoeData.durLoss;
+                durability -= loss;
                 durText.innerText = Math.ceil(Math.max(0, durability));
-                
                 if (durability <= 0) {
-                    setTimeout(() => { alert(`${shoeData.name} 파손! \n총 거리: ${totalDistBase}m \n최고 고도: ${maxOverallHeight}m`); location.reload(); }, 500);
+                    alert(`[${shoeData.name}] 파손! 최종 기록: ${totalDistBase}m`);
+                    location.reload();
                 }
             }
         }
-        cameraX += (targetCameraX - cameraX) * 0.1;
-        cameraY += (targetCameraY - cameraY) * 0.1;
     }
 
-    function drawCloud(ctx, x, y, w, h) {
+    function drawCloud(x, y, w, h) {
         ctx.beginPath();
         ctx.ellipse(x, y, w * 0.5, h * 0.6, 0, 0, Math.PI * 2);
-        ctx.ellipse(x - w * 0.35, y + h * 0.1, w * 0.3, h * 0.4, 0, 0, Math.PI * 2);
-        ctx.ellipse(x + w * 0.35, y + h * 0.1, w * 0.3, h * 0.4, 0, 0, Math.PI * 2);
-        ctx.ellipse(x, y - h * 0.3, w * 0.25, h * 0.4, 0, 0, Math.PI * 2);
+        ctx.ellipse(x - w * 0.3, y + h * 0.1, w * 0.3, h * 0.4, 0, 0, Math.PI * 2);
+        ctx.ellipse(x + w * 0.3, y + h * 0.1, w * 0.3, h * 0.4, 0, 0, Math.PI * 2);
         ctx.fill();
     }
 
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (!gameStarted) { requestAnimationFrame(draw); return; }
+        if(!gameStarted) { requestAnimationFrame(draw); return; }
 
-        let altitude = Math.abs(cameraY);
-        let skyRatio = Math.min(altitude / 8000, 1);
-        ctx.fillStyle = `rgb(${Math.floor(135*(1-skyRatio))}, ${Math.floor(206*(1-skyRatio))}, ${Math.floor(235*(1-skyRatio)+10*skyRatio)})`;
+        let skyRatio = Math.min(Math.abs(cameraY) / 8000, 1);
+        ctx.fillStyle = `rgb(${135*(1-skyRatio)}, ${206*(1-skyRatio)}, ${235*(1-skyRatio)+20*skyRatio})`;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
         ctx.translate(-cameraX, -cameraY);
 
         clouds.forEach(c => {
-            if (c.y > cameraY - 1000 && c.y < cameraY + canvas.height + 1000) {
-                ctx.fillStyle = `rgba(255, 255, 255, ${c.opacity})`;
-                drawCloud(ctx, c.x, c.y, c.w, c.h);
-            }
+            let wrapX = (c.x - (cameraX * 0.5)) % 6000;
+            if (wrapX < -1000) wrapX += 6000;
+            ctx.fillStyle = `rgba(255, 255, 255, ${c.opacity})`;
+            drawCloud(cameraX + wrapX, c.y, c.w, c.h);
         });
 
-        let seasonZone = Math.floor(cameraX / 10000) % 4; 
-        
-        for(let i = Math.floor(cameraX/10000); i <= Math.floor((cameraX+canvas.width)/10000); i++) {
-            let s = i % 4;
-            let color = "#4caf50"; 
-            if(s === 1) color = "#1b5e20"; 
-            else if(s === 2) color = "#d4a76a"; 
-            else if(s === 3) color = "#ffffff"; 
-            ctx.fillStyle = color;
-            ctx.fillRect(i * 10000, groundY, 10001, 2000);
-        }
+        let season = Math.floor(shoe.x / 10000) % 4;
+        let groundCol = (season===0)?"#4caf50":(season===1)?"#1b5e20":(season===2)?"#d4a76a":"#fff";
+        ctx.fillStyle = groundCol;
+        ctx.fillRect(cameraX - 500, groundY, canvas.width + 1000, 1000);
 
         trees.forEach(t => {
-            if(t.x > cameraX - 100 && t.x < cameraX + canvas.width + 100) {
-                let s = Math.floor(t.x / 10000) % 4;
-                ctx.fillStyle = "#5d4037"; 
-                ctx.fillRect(t.x, groundY - t.size, 8, t.size);
-                if(s === 0) { ctx.fillStyle = "#81c784"; ctx.beginPath(); ctx.arc(t.x+4, groundY-t.size, t.size/1.5, 0, Math.PI*2); ctx.fill(); } 
-                else if(s === 1) { ctx.fillStyle = "#2e7d32"; ctx.beginPath(); ctx.arc(t.x+4, groundY-t.size, t.size/1.2, 0, Math.PI*2); ctx.fill(); } 
-                else if(s === 2) { ctx.fillStyle = t.autumnColor; ctx.beginPath(); ctx.arc(t.x+4, groundY-t.size, t.size/1.5, 0, Math.PI*2); ctx.fill(); } 
-                else { ctx.strokeStyle = "#5d4037"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(t.x+4, groundY-t.size); ctx.lineTo(t.x-10, groundY-t.size-15); ctx.stroke(); ctx.fillStyle = "white"; ctx.fillRect(t.x-2, groundY-t.size-2, 12, 4); }
+            if(t.x > cameraX - 200 && t.x < cameraX + canvas.width + 200) {
+                ctx.fillStyle = "#5d4037"; ctx.fillRect(t.x, groundY-t.size, 8, t.size);
+                ctx.fillStyle = (season===2)?"#bf360c":(season===3)?"#eee":"#2e7d32";
+                ctx.beginPath(); ctx.arc(t.x+4, groundY-t.size, t.size/1.5, 0, Math.PI*2); ctx.fill();
             }
         });
 
         ctx.save();
         ctx.translate(shoe.x, shoe.y); ctx.rotate(shoe.rotation);
         ctx.fillStyle = shoeData.color;
-
         if(shoeData.name === "롱부츠") {
             ctx.fillRect(-14, 0, 28, 12); 
             ctx.fillRect(4, -35, 12, 50); 
         } else if(shoeData.name === "구두") {
             ctx.fillRect(-14, -6, 28, 10);
-            ctx.fillStyle = "#000"; ctx.fillRect(8, 4, 6, 8); 
-        } else if(shoeData.name === "슬리퍼") {
+            ctx.fillStyle = "#000";  
+	} else if(shoeData.name === "슬리퍼") {
             ctx.fillRect(-14, -8, 28, 12);
             ctx.fillStyle = "white"; 
-            ctx.fillRect(-8, -8, 2, 12); ctx.fillRect(-4, -8, 2, 12); ctx.fillRect(0, -8, 2, 12);
+            ctx.fillRect(0, -8, 2, 12); ctx.fillRect(4, -8, 2, 12); ctx.fillRect(8, -8, 2, 12);
         } else {
             ctx.fillRect(-14, -8, 28, 12);
         }
         ctx.restore();
 
-        if (!isFlying && durability > 0) {
+        if (!isFlying) {
             ctx.save(); ctx.translate(shoe.x, shoe.y); ctx.rotate(angle * Math.PI / 180);
-            ctx.setLineDash([5, 5]); ctx.strokeStyle = "white";
+            ctx.setLineDash([5, 5]); ctx.strokeStyle = "#fff";
             ctx.beginPath(); ctx.moveTo(20,0); ctx.lineTo(100,0); ctx.stroke(); ctx.restore();
         }
 
         ctx.restore();
 
-        if(seasonZone === 3) {
-            ctx.fillStyle = "white";
+        if(season === 3) {
+            ctx.fillStyle = "#fff";
             snow.forEach(p => {
-                p.y += p.s; p.x += Math.sin(p.y/20);
-                if(p.y > canvas.height) p.y = -10;
+                p.y += p.s; if(p.y > canvas.height) p.y = -10;
                 ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, Math.PI*2); ctx.fill();
             });
         }
@@ -288,21 +242,21 @@
         requestAnimationFrame(draw);
     }
 
-    function startCharge() { if (gameStarted && !isFlying && durability > 0) isCharging = true; }
-    function endCharge() {
-        if (isCharging) {
+    function start() { if(gameStarted && !isFlying) isCharging = true; }
+    function end() {
+        if(isCharging) {
             isCharging = false; isFlying = true;
-            const rad = angle * Math.PI / 180;
-            const finalPower = ((power / 4) + 6.5) / shoeData.weight; 
-            shoe.vx = Math.cos(rad) * finalPower; shoe.vy = Math.sin(rad) * finalPower;
+            let rad = angle * Math.PI / 180;
+            let fPower = (power / 4 + 6.5) / shoeData.weight;
+            shoe.vx = Math.cos(rad) * fPower; shoe.vy = Math.sin(rad) * fPower;
             power = 0; gauge.style.width = "0%";
         }
     }
 
-    canvas.addEventListener('mousedown', startCharge);
-    window.addEventListener('mouseup', endCharge);
-    canvas.addEventListener('touchstart', (e) => { if(gameStarted) e.preventDefault(); startCharge(); });
-    window.addEventListener('touchend', (e) => { if(gameStarted) e.preventDefault(); endCharge(); });
+    canvas.addEventListener('mousedown', start);
+    window.addEventListener('mouseup', end);
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); start(); });
+    window.addEventListener('touchend', e => { e.preventDefault(); end(); });
 
     draw();
 </script>
