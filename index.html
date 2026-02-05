@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>신발 던지기: 패럴랙스 저니</title>
+    <style>
+        body { margin: 0; padding: 0; background: #87CEEB; font-family: sans-serif; overflow: hidden; touch-action: none; }
+        #ui { position: absolute; top: 15px; left: 15px; z-index: 10; color: #fff; text-shadow: 2px 2px 4px #000; pointer-events: none; }
+        #gauge-container { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 220px; height: 25px; background: rgba(0,0,0,0.6); border: 3px solid #fff; border-radius: 15px; overflow: hidden; }
+        #gauge { width: 0%; height: 100%; background: linear-gradient(to right, #4caf50, #ffeb3b, #f44336); }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div style="font-size: 1.4em; font-weight: bold;">🚩 <span id="total-val">0</span>m</div>
+    <div style="margin-top:5px;">🛠️ 내구도: <span id="dur-val">100</span>%</div>
+</div>
+
+<div id="gauge-container"><div id="gauge"></div></div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gauge = document.getElementById('gauge');
+    const totalText = document.getElementById('total-val');
+    const durText = document.getElementById('dur-val');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let totalDist = 0;
+    let durability = 100;
+    let isCharging = false;
+    let isFlying = false;
+    let power = 0;
+    let powerDir = 1;
+    let angle = -45;
+    let angleDir = 1;
+    
+    const gravity = 0.22;
+    const groundY = canvas.height * 0.85;
+
+    let shoe = {
+        x: 100, y: groundY - 20,
+        vx: 0, vy: 0,
+        radius: 12, rotation: 0, startX: 100
+    };
+
+    let cameraX = 0;
+    let targetCameraX = 0;
+
+    // 배경 오브젝트 생성 (랜덤 나무와 구름)
+    const trees = [];
+    for(let i=0; i<50; i++) {
+        trees.push({ x: i * 300 + Math.random()*100, type: 'tree', size: 40 + Math.random()*40 });
+    }
+    const clouds = [];
+    for(let i=0; i<20; i++) {
+        clouds.push({ x: i * 600 + Math.random()*200, y: 50 + Math.random()*150, speed: 0.2 + Math.random()*0.3 });
+    }
+
+    function update() {
+        if (!isFlying && durability > 0) {
+            angle += 1.8 * angleDir;
+            if (angle > -10 || angle < -80) angleDir *= -1;
+            if (isCharging) {
+                power += 3 * powerDir;
+                if (power > 100 || power < 0) powerDir *= -1;
+                gauge.style.width = power + "%";
+            }
+        }
+
+        if (isFlying) {
+            shoe.vx *= 0.996;
+            shoe.vy += gravity;
+            shoe.x += shoe.vx;
+            shoe.y += shoe.vy;
+            shoe.rotation += shoe.vx * 0.1;
+
+            // 카메라 타겟 설정 (신발을 화면 1/3 지점에 둠)
+            targetCameraX = Math.max(0, shoe.x - canvas.width * 0.3);
+
+            if (shoe.y + shoe.radius >= groundY) {
+                shoe.y = groundY - shoe.radius;
+                isFlying = false;
+                totalDist += Math.floor((shoe.x - shoe.startX) / 10);
+                totalText.innerText = totalDist;
+                shoe.startX = shoe.x;
+                durability -= Math.floor(Math.random() * 7) + 5;
+                durText.innerText = Math.max(0, durability);
+                
+                if (durability <= 0) {
+                    setTimeout(() => { alert("망가진 신발로 " + totalDist + "m나 왔군요! 대단해요!"); location.reload(); }, 500);
+                }
+            }
+        }
+        // 카메라 부드러운 이동 (Lerp)
+        cameraX += (targetCameraX - cameraX) * 0.1;
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. 하늘 배경 (고정)
+        let grad = ctx.createLinearGradient(0, 0, 0, groundY);
+        grad.addColorStop(0, "#1e90ff");
+        grad.addColorStop(1, "#87CEEB");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 2. 구름 (느린 패럴랙스)
+        ctx.fillStyle = "white";
+        clouds.forEach(c => {
+            let cx = (c.x - cameraX * 0.2) % (canvas.width * 5); // 매우 느리게
+            ctx.beginPath();
+            ctx.arc(cx, c.y, 30, 0, Math.PI*2);
+            ctx.arc(cx+25, c.y-10, 35, 0, Math.PI*2);
+            ctx.arc(cx+50, c.y, 30, 0, Math.PI*2);
+            ctx.fill();
+        });
+
+        // 3. 나무 (중간 패럴랙스)
+        trees.forEach(t => {
+            let tx = t.x - cameraX * 0.6; // 땅보다는 느리게
+            if(tx > -100 && tx < canvas.width + 100) {
+                ctx.fillStyle = "#8B4513"; // 나무 기둥
+                ctx.fillRect(tx, groundY - t.size, 15, t.size);
+                ctx.fillStyle = "#228B22"; // 나뭇잎
+                ctx.beginPath();
+                ctx.arc(tx + 7, groundY - t.size, t.size/1.5, 0, Math.PI*2);
+                ctx.fill();
+            }
+        });
+
+        // 4. 땅 (실제 속도)
+        ctx.save();
+        ctx.translate(-cameraX, 0);
+        ctx.fillStyle = "#556b2f";
+        ctx.fillRect(cameraX, groundY, canvas.width, canvas.height - groundY);
+        
+        // 지면 가이드라인
+        ctx.strokeStyle = "rgba(255,255,255,0.2)";
+        for(let i = Math.floor(cameraX/200)*200; i < cameraX + canvas.width + 200; i+=200) {
+            ctx.strokeRect(i, groundY, 1, 10);
+        }
+
+        // 5. 신발
+        ctx.save();
+        ctx.translate(shoe.x, shoe.y);
+        ctx.rotate(shoe.rotation);
+        ctx.fillStyle = "#a52a2a";
+        ctx.fillRect(-12, -8, 24, 12);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(-12, 2, 24, 3);
+        ctx.restore();
+
+        // 조준선
+        if (!isFlying && durability > 0) {
+            ctx.save();
+            ctx.translate(shoe.x, shoe.y);
+            ctx.rotate(angle * Math.PI / 180);
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = "white";
+            ctx.beginPath(); ctx.moveTo(20,0); ctx.lineTo(100,0); ctx.stroke();
+            ctx.restore();
+        }
+
+        ctx.restore();
+        update();
+        requestAnimationFrame(draw);
+    }
+
+    function startCharge() { if (!isFlying && durability > 0) isCharging = true; }
+    function endCharge() {
+        if (isCharging) {
+            isCharging = false;
+            isFlying = true;
+            const rad = angle * Math.PI / 180;
+            const finalPower = (power / 4) + 6;
+            shoe.vx = Math.cos(rad) * finalPower;
+            shoe.vy = Math.sin(rad) * finalPower;
+            power = 0;
+            gauge.style.width = "0%";
+        }
+    }
+
+    window.addEventListener('mousedown', startCharge);
+    window.addEventListener('mouseup', endCharge);
+    window.addEventListener('touchstart', (e) => { e.preventDefault(); startCharge(); });
+    window.addEventListener('touchend', (e) => { e.preventDefault(); endCharge(); });
+
+    draw();
+</script>
+</body>
+</html>
